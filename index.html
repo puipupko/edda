@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учет рентабельности проектов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ccc;
+            width: 16.6%;
+        }
+
+        .clear-button {
+            background-color: #f44336;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Учет рентабельности проектов</h1>
+        <form id="projectForm">
+            <label for="name">Название проекта:</label>
+            <input type="text" id="name" required>
+
+            <label for="income">Доход (руб):</label>
+            <input type="number" id="income" required>
+
+            <label for="expenses">Прочие расходы (руб):</label>
+            <input type="number" id="expenses" required>
+
+            <label for="directorDays">Рабочие дни Директора:</label>
+            <input type="number" id="directorDays" required>
+
+            <label for="leadDesignerDays">Рабочие дни Главного Дизайнера:</label>
+            <input type="number" id="leadDesignerDays" required>
+
+            <label for="designerDays">Рабочие дни Дизайнера:</label>
+            <input type="number" id="designerDays" required>
+
+            <label for="juniorDesignerDays">Рабочие дни Младшего Дизайнера:</label>
+            <input type="number" id="juniorDesignerDays" required>
+
+            <button type="submit">Добавить проект</button>
+        </form>
+
+        <table id="projectsTable">
+            <thead>
+                <tr>
+                    <th>Название проекта</th>
+                    <th>Доход (руб)</th>
+                    <th>Расходы (руб)</th>
+                    <th>Накладные расходы (руб)</th>
+                    <th>Чистая прибыль (руб)</th>
+                    <th>Рентабельность (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Проекты будут добавляться здесь -->
+            </tbody>
+        </table>
+
+        <button id="clearProjects" class="clear-button">Очистить все данные</button>
+    </div>
+
+    <script>
+        const directorDayCost = 7000;
+        const leadDesignerDayCost = 5000;
+        const designerDayCost = 4000;
+        const juniorDesignerDayCost = 3000;
+        const overheadMultiplier = 14000;
+
+        // Загрузка данных формы и счетчика из Local Storage
+        function loadFormData() {
+            document.getElementById('name').value = localStorage.getItem('name') || '';
+            document.getElementById('income').value = localStorage.getItem('income') || '';
+            document.getElementById('expenses').value = localStorage.getItem('expenses') || '';
+            document.getElementById('directorDays').value = localStorage.getItem('directorDays') || '';
+            document.getElementById('leadDesignerDays').value = localStorage.getItem('leadDesignerDays') || '';
+            document.getElementById('designerDays').value = localStorage.getItem('designerDays') || '';
+            document.getElementById('juniorDesignerDays').value = localStorage.getItem('juniorDesignerDays') || '';
+            window.projectCount = parseInt(localStorage.getItem('projectCount')) || 1;
+        }
+
+        // Сохранение данных формы
+        function saveFormData() {
+            localStorage.setItem('name', document.getElementById('name').value);
+            localStorage.setItem('income', document.getElementById('income').value);
+            localStorage.setItem('expenses', document.getElementById('expenses').value);
+            localStorage.setItem('directorDays', document.getElementById('directorDays').value);
+            localStorage.setItem('leadDesignerDays', document.getElementById('leadDesignerDays').value);
+            localStorage.setItem('designerDays', document.getElementById('designerDays').value);
+            localStorage.setItem('juniorDesignerDays', document.getElementById('juniorDesignerDays').value);
+            localStorage.setItem('projectCount', window.projectCount);
+        }
+
+        // Функция для загрузки сохраненных проектов из Local Storage
+        function loadProjects() {
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+            projects.forEach(project => addProjectToTable(project));
+        }
+
+        // Функция для добавления данных в таблицу
+        function addProjectToTable(project) {
+            const table = document.getElementById('projectsTable').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+
+            const nameCell = newRow.insertCell(0);
+            const incomeCell = newRow.insertCell(1);
+            const expensesCell = newRow.insertCell(2);
+            const overheadExpensesCell = newRow.insertCell(3);
+            const netProfitCell = newRow.insertCell(4);
+            const profitabilityCell = newRow.insertCell(5);
+
+            nameCell.textContent = project.name;
+            incomeCell.textContent = project.income.toFixed(2);
+            expensesCell.textContent = project.totalExpenses.toFixed(2);
+            overheadExpensesCell.textContent = project.overheadExpenses.toFixed(2);
+            netProfitCell.textContent = project.netProfit.toFixed(2);
+            profitabilityCell.textContent = project.profitability.toFixed(2) + '%';
+        }
+
+        document.getElementById('projectForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            let name = document.getElementById('name').value.trim();
+            if (!name) {
+                alert("Введите название проекта");
+                return;
+            }
+            name += ` - просчет ${window.projectCount++}`;
+
+            const income = parseFloat(document.getElementById('income').value);
+            const otherExpenses = parseFloat(document.getElementById('expenses').value);
+
+            const directorDays = parseFloat(document.getElementById('directorDays').value);
+            const leadDesignerDays = parseFloat(document.getElementById('leadDesignerDays').value);
+            const designerDays = parseFloat(document.getElementById('designerDays').value);
+            const juniorDesignerDays = parseFloat(document.getElementById('juniorDesignerDays').value);
+
+            const directorCost = directorDays * directorDayCost;
+            const leadDesignerCost = leadDesignerDays * leadDesignerDayCost;
+            const designerCost = designerDays * designerDayCost;
+            const juniorDesignerCost = juniorDesignerDays * juniorDesignerDayCost;
+
+            const totalExpenses = otherExpenses + directorCost + leadDesignerCost + designerCost + juniorDesignerCost;
+            const totalDays = directorDays + leadDesignerDays + designerDays + juniorDesignerDays;
+            const overheadExpenses = totalDays * overheadMultiplier;
+
+            const netProfit = income - totalExpenses - overheadExpenses;
+            const profitability = (netProfit / (totalExpenses + overheadExpenses)) * 100;
+
+            const project = {
+                name,
+                income,
+                totalExpenses,
+                overheadExpenses,
+                netProfit,
+                profitability
+            };
+
+            addProjectToTable(project);
+
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+            projects.push(project);
+            localStorage.setItem('projects', JSON.stringify(projects));
+
+            saveFormData();
+        });
+
+        // Очистка всех данных
+        document.getElementById('clearProjects').addEventListener('click', function() {
+            localStorage.removeItem('projects');
+            localStorage.removeItem('projectCount');
+            const table = document.getElementById('projectsTable').getElementsByTagName('tbody')[0];
+            table.innerHTML = ''; // Очистка таблицы
+            window.projectCount = 1;
+        });
+
+        // Загрузка данных формы и проектов при открытии страницы
+        loadFormData();
+        loadProjects();
+    </script>
+</body>
+</html>
